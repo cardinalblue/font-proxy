@@ -90,15 +90,18 @@ app.get("/font", async (request, response) => {
 
         // send
         if (format === "base64") {
-          const contents = await fs.readFile(`${assetSrc}/${returnFontFile?.name}`, {encoding: 'base64'});
+          const contents = await fs.readFile(
+            `${assetSrc}/${returnFontFile?.name}`,
+            { encoding: "base64" }
+          );
           response.status(200).json({ base64: contents });
         } else {
           response.status(200).download(`${assetSrc}/${returnFontFile?.name}`);
-          response.on("close", () =>
-            fs.unlink(`${assetSrc}/${returnFontFile?.name}`)
-          );
-          return;
         }
+        response.on("close", () =>
+          fs.unlink(`${assetSrc}/${returnFontFile?.name}`)
+        );
+        return;
       } catch (e) {
         console.log(`Something went wrong. ${e}`);
         response.status(500).send({ status: "Request font file failed" });
