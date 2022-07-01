@@ -41,7 +41,7 @@ app.get("/fonts", async (request, response) => {
 });
 
 app.get("/font", async (request, response) => {
-  const { source, family } = request.query;
+  const { source, family, format } = request.query;
   if (!family) {
     response.status(500).send({ status: "Params: family can't not be empty" });
   }
@@ -52,7 +52,7 @@ app.get("/font", async (request, response) => {
     const fontDataUri = _?.category?.bundles?.edges
       ?.filter((e) => e?.node?.title === family)
       ?.map((e) => e?.node?.install_source_url);
-    console.log({ fontDataUri });
+
     if (fontDataUri.length > 0) {
       // get the font file in the zip data
       const body = await axios.get(`${fontDataUri}`, {
@@ -78,7 +78,6 @@ app.get("/font", async (request, response) => {
         // TODO: we now only send back the first font file,
         // but we can consider if we are able to send back a file that content multiple font files.
         const returnFontFile = files?.[0];
-        console.log({ returnFontFile });
         // store
         await fs.writeFile(
           `${assetSrc}/${returnFontFile?.name}`,
@@ -88,19 +87,26 @@ app.get("/font", async (request, response) => {
             console.log("store font file failed!");
           }
         );
+
         // send
-        response.status(200).download(`${assetSrc}/${returnFontFile?.name}`);
-        response.on("close", () =>
-          fs.unlink(`${assetSrc}/${returnFontFile?.name}`)
-        );
-        return
+        if (format === "base64") {
+          const contents = await fs.readFile(`${assetSrc}/${returnFontFile?.name}`, {encoding: 'base64'});
+          response.status(200).json({ base64: contents });
+        } else {
+          response.status(200).download(`${assetSrc}/${returnFontFile?.name}`);
+          response.on("close", () =>
+            fs.unlink(`${assetSrc}/${returnFontFile?.name}`)
+          );
+          return;
+        }
       } catch (e) {
         console.log(`Something went wrong. ${e}`);
         response.status(500).send({ status: "Request font file failed" });
-        return
+        return;
       }
     }
     response.status(500).send({ status: "Params: family can't found." });
+    return;
   }
 });
 
