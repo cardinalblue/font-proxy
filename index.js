@@ -1,7 +1,9 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const AdmZip = require("adm-zip");
-const fs = require('fs-extra')
+const fs = require('fs-extra');
+const fsPromises = require('fs').promises;
+const cors = require('cors');
 const axios = require("axios");
 const { request, GraphQLClient } = require("graphql-request");
 const { getAllFonts } = require("./graphQLQuery.js");
@@ -10,15 +12,17 @@ const port = 3003;
 const assetSrc = "./assets";
 
 app.use(bodyParser.json());
+app.use(cors());
 app.use(
   bodyParser.urlencoded({
     extended: true,
   })
 );
+app.use('/public', express.static(__dirname + '/assets'));
 
 // server domain name source:
 // https://www.notion.so/piccollage/Domain-Name-Redesign-227d97360aeb4ec59f221931d4a5cda6
-const endpoint = "https://content.piccollage.com/api/graphql?cbid=fontserver";
+const endpoint = "https://content.piccollage.com/api/graphql?cbid=fontserver&device_features_enabled=vip_font";
 const client = new GraphQLClient(endpoint, { headers: {} });
 
 app.get("/", (request, response) => {
@@ -82,7 +86,7 @@ app.get("/font", async (request, response) => {
         // but we can consider if we are able to send back a file that content multiple font files.
         const returnFontFile = files?.[0];
         // store
-        await fs.writeFile(
+        await fsPromises.writeFile(
           `${assetSrc}/${returnFontFile?.name}`,
           returnFontFile?.data,
           (err) => {
@@ -97,9 +101,11 @@ app.get("/font", async (request, response) => {
             `${assetSrc}/${returnFontFile?.name}`,
             { encoding: "base64" }
           );
+          // response.setHeader('Content-Type', 'font/woff2')
           response.status(200).json({ base64: contents });
         } else {
-          response.status(200).download(`${assetSrc}/${returnFontFile?.name}`);
+          response.setHeader('Content-Type', 'font/woff2')
+          response.download(`${assetSrc}/${returnFontFile?.name}`);
         }
         response.on("close", () =>
           fs.unlink(`${assetSrc}/${returnFontFile?.name}`)
