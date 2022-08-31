@@ -1,12 +1,12 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const AdmZip = require("adm-zip");
-const fs = require("fs").promises;
+const fs = require('fs-extra')
 const axios = require("axios");
 const { request, GraphQLClient } = require("graphql-request");
 const { getAllFonts } = require("./graphQLQuery.js");
 const app = express();
-const port = 3000;
+const port = 3003;
 const assetSrc = "./assets";
 
 app.use(bodyParser.json());
@@ -15,7 +15,10 @@ app.use(
     extended: true,
   })
 );
-const endpoint = "https://store.pic-collage.com/api/graphql?cbid=figmaPlugin";
+
+// server domain name source:
+// https://www.notion.so/piccollage/Domain-Name-Redesign-227d97360aeb4ec59f221931d4a5cda6
+const endpoint = "https://content.piccollage.com/api/graphql?cbid=fontserver";
 const client = new GraphQLClient(endpoint, { headers: {} });
 
 app.get("/", (request, response) => {
@@ -115,5 +118,5 @@ app.get("/font", async (request, response) => {
 
 app.listen(port, async () => {
   console.log(`App running on port ${port}.`);
-  await fs.mkdir(assetSrc);
+  fs.ensureDirSync(assetSrc);  
 });
