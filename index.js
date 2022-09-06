@@ -10,7 +10,7 @@ const { request, GraphQLClient } = require("graphql-request");
 const { getAllFonts } = require("./graphQLQuery.js");
 const { response } = require("express");
 const app = express();
-const port = 3003;
+const port = 3000;
 const assetSrc = "./assets";
 
 app.use(bodyParser.json());
@@ -167,7 +167,7 @@ app.get("/generate-fonts", async (request, response) => {
         }
       );
       const requrl = url.format({
-        protocol: request.protocol,
+        protocol: 'https',
         host: request.get("host"),
       });
       const data = `@font-face {
