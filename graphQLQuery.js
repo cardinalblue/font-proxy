@@ -14,6 +14,7 @@ const getAllFonts = gql`
             install_source_url
             bundle_name
             product_id
+            thumbnails
             items {
               edges {
                 node {

@@ -10,7 +10,7 @@ const { request, GraphQLClient } = require("graphql-request");
 const { getAllFonts } = require("./graphQLQuery.js");
 const { response } = require("express");
 const app = express();
-const port = 3000;
+const port = 4000;
 const assetSrc = "./assets";
 
 app.use(bodyParser.json());
@@ -24,9 +24,14 @@ app.use("/public", express.static(__dirname + "/assets"));
 
 // server domain name source:
 // https://www.notion.so/piccollage/Domain-Name-Redesign-227d97360aeb4ec59f221931d4a5cda6
-const endpoint =
-  "https://content.piccollage.com/api/graphql?cbid=fontserver&device_features_enabled=vip_font";
-const client = new GraphQLClient(endpoint, { headers: {} });
+const vipFontEndpoint =
+  "https://content.piccollage.com/api/graphql?device_features_enabled=vip_font&os_name=Android&app_version=7";
+const client = new GraphQLClient(vipFontEndpoint, { headers: {} });
+
+const fetAllPicoFontRequest = async () => {
+  const _ = await client.request(getAllFonts);
+  return [..._?.category?.bundles?.edges];
+};
 
 app.get("/", (request, response) => {
   response.json({ info: "Node.js, Express, and Postgres API" });
@@ -35,13 +40,14 @@ app.get("/", (request, response) => {
 app.get("/fonts", async (request, response) => {
   const { source } = request.query;
   if (source === "pico") {
-    // use the graphQL to get picCollage fonts
-    const _ = await client.request(getAllFonts);
-    const preview = _?.category?.bundles?.edges?.map((e) => ({
+    const result = await fetAllPicoFontRequest();
+    const lists = result?.map((e) => ({
       title: e?.node?.title,
       install_uri: e?.node?.install_source_url,
+      thumbnail: e?.node?.thumbnails,
     }));
-    response.status(200).json({ lists: preview });
+    console.log(lists.length);
+    response.status(200).json({ lists });
   } else if (source === "google") {
     // go to google font server and ask from res
     response.status(200).json({ lists: [] });
@@ -58,8 +64,8 @@ app.get("/font", async (request, response) => {
 
   if (source === "pico") {
     // use the graphQL Client to get picCollage font zip data uri
-    const _ = await client.request(getAllFonts);
-    const fontDataUri = _?.category?.bundles?.edges
+    const result = await fetAllPicoFontRequest();
+    const fontDataUri = result
       ?.filter((e) => e?.node?.title === family)
       ?.map((e) => e?.node?.install_source_url);
 
@@ -166,10 +172,11 @@ app.get("/generate-fonts", async (request, response) => {
           console.log("store font file failed!");
         }
       );
-      const requrl = url.format({
-        protocol: 'https',
-        host: request.get("host"),
-      });
+      const requrl = 'https://font-proxy-production.up.railway.app'
+      // url.format({
+      //   protocol: "https",
+      //   host: request.get("host"),
+      // });
       const data = `@font-face {
 font-family: "${fontName}";
 src: url("${requrl}/public/${fontName}.ttf")
@@ -189,8 +196,8 @@ src: url("${requrl}/public/${fontName}.ttf")
   // fetch all font
   if (source === "pico") {
     // use the graphQL to get picCollage fonts
-    const _ = await client.request(getAllFonts);
-    const fontList = _?.category?.bundles?.edges?.map((e) => ({
+    const result = await fetAllPicoFontRequest();
+    const fontList = result?.map((e) => ({
       title: e?.node?.title,
       install_uri: e?.node?.install_source_url,
     }));
